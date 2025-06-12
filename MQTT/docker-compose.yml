@@ -1,0 +1,81 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    ports:
+      - "1845:1845"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil", "--host", "0.0.0.0"]
+    ports:
+      - "8545:8545"
+    # ADICIONADO: Mapeia a pasta do seu projeto blockchain para dentro do contêiner.
+    volumes:
+      - ./blockchain:/app/blockchain
+
+  carro:
+    build:
+      context: .
+      dockerfile: ./Carro/Dockerfile
+    depends_on:
+      - mosquitto
+      - anvil
+    stdin_open: true
+    tty: true
+
+  # ... (seus 3 serviços de servidor, sem alterações)
+  servidor-feiradesantana:
+    build:
+      context: .
+      dockerfile: ./Servidor/Dockerfile
+    volumes:
+      - ./utils/data:/data
+    ports:
+      - "8080:8080"
+    environment:
+      - PORTA=8080
+      - CIDADE=FSA
+      - ARQUIVO_JSON=/data/FeiraDeSantana.json
+      - ARQUIVO_JSON_ROTAS=/data/Rotas.json
+      - CONTAINER=servidor-feiradesantana
+    depends_on:
+      - mosquitto
+      - anvil
+
+  servidor-ilheus:
+    build:
+      context: .
+      dockerfile: ./Servidor/Dockerfile
+    volumes:
+      - ./utils/data:/data
+    ports:
+      - "8081:8081"
+    environment:
+      - PORTA=8081
+      - CIDADE=ILH
+      - ARQUIVO_JSON=/data/Ilheus.json
+      - ARQUIVO_JSON_ROTAS=/data/Rotas.json
+      - CONTAINER=servidor-ilheus
+    depends_on:
+      - mosquitto
+      - anvil
+
+  servidor-salvador:
+    build:
+      context: .
+      dockerfile: ./Servidor/Dockerfile
+    volumes:
+      - ./utils/data:/data
+    ports:
+      - "8082:8082"
+    environment:
+      - PORTA=8082
+      - CIDADE=SSA
+      - ARQUIVO_JSON=/data/Salvador.json
+      - ARQUIVO_JSON_ROTAS=/data/Rotas.json
+      - CONTAINER=servidor-salvador
+    depends_on:
+      - mosquitto
+      - anvil
